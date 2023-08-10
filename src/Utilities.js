@@ -460,6 +460,7 @@ const locales = {
       by: 'by',
     },
   },
+
 };
 
 // dateFormat deriver l10n requires month and day names to be passed in directly

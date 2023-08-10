@@ -73,7 +73,7 @@ function makeRenderer(
       }
 
       const layout = {
-        title: titleText,
+        // title: titleText,
         hovermode: 'closest',
         /* eslint-disable no-magic-numbers */
         width: window.innerWidth / 1.5,
@@ -107,7 +107,9 @@ function makeRenderer(
           automargin: true,
         };
       }
-
+      layout.margin = {
+        t: 30
+      }
       return (
         <PlotlyComponent
           data={data}
@@ -172,6 +174,9 @@ function makeScatterRenderer(PlotlyComponent) {
         height: window.innerHeight / 1.4 - 50,
         /* eslint-enable no-magic-numbers */
       };
+      layout.margin = {
+        t: 30
+      }
 
       return (
         <PlotlyComponent

@@ -8,22 +8,31 @@ import TableRenderers from './TableRenderers';
 
 class PivotTable extends React.PureComponent {
   render() {
-    const Renderer = this.props.renderers[
-      this.props.rendererName in this.props.renderers
-        ? this.props.rendererName
-        : Object.keys(this.props.renderers)[0]
-    ];
-    return <Renderer {...this.props} />;
+    if(!Array.isArray(this.props.rendererName)){
+      const Renderer = this.props.renderers[
+        this.props.rendererName in this.props.renderers
+          ? this.props.rendererName
+          : Object.keys(this.props.renderers)[0]
+      ];
+      return <div className="pvtOutputRows"><Renderer {...this.props} /></div>;
+    }
+      return this.props.rendererName.map(name => {
+        const Renderer = this.props.renderers[name]
+        return <div
+            key={this.props.renderers[name]}
+            className="pvtOutputRows"><Renderer {...this.props} /></div>
+      })
+
   }
 }
 
 PivotTable.propTypes = Object.assign({}, PivotData.propTypes, {
-  rendererName: PropTypes.string,
+  rendererName: PropTypes.arrayOf(PropTypes.string),
   renderers: PropTypes.objectOf(PropTypes.func),
 });
 
 PivotTable.defaultProps = Object.assign({}, PivotData.defaultProps, {
-  rendererName: 'Table',
+  rendererName: ['Table'],
   renderers: TableRenderers,
 });
 

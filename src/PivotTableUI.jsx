@@ -58,11 +58,37 @@ export class DraggableAttribute extends React.Component {
           }}
           onClick={() => this.props.moveFilterBoxToTop(this.props.name)}
         >
-          <a onClick={() => this.setState({open: false})} className="pvtCloseX">
-            ×
-          </a>
-          <span className="pvtDragHandle">☰</span>
-          <h4>{this.props.name}</h4>
+          <div className="pvtTitleBar">
+            <span className="pvtDragHandle"><i className="mdi mdi-cursor-move"></i></span>
+            <h4>
+              <input type="checkbox"
+                     id={"INPUT_"+this.props.name.replace(/\s/gi,"")}
+                     // checked={true}
+                     onChange={(event) => {
+                       if(event.target.checked) {
+                         this.props.removeValuesFromFilter(
+                             this.props.name,
+                             Object.keys(this.props.attrValues).filter(
+                                 this.matchesFilter.bind(this)
+                             )
+                         );
+                       }else {
+
+                         this.props.addValuesToFilter(
+                             this.props.name,
+                             Object.keys(this.props.attrValues).filter(
+                                 this.matchesFilter.bind(this)
+                             )
+                         )
+                       }
+                     }
+                     }
+              />
+              <label htmlFor={"INPUT_"+this.props.name.replace(/\s/gi,"")}>{this.props.name}</label>
+            </h4>
+            <a onClick={() => this.setState({open: false})} className="pvtCloseX"><i className="mdi mdi-close"></i></a>
+          </div>
+
 
           {showMenu || <p>(too many values to show)</p>}
 
@@ -80,54 +106,19 @@ export class DraggableAttribute extends React.Component {
                 }
               />
               <br />
-              <a
-                role="button"
-                className="pvtButton"
-                onClick={() =>
-                  this.props.removeValuesFromFilter(
-                    this.props.name,
-                    Object.keys(this.props.attrValues).filter(
-                      this.matchesFilter.bind(this)
-                    )
-                  )
-                }
-              >
-                Select {values.length === shown.length ? 'All' : shown.length}
-              </a>{' '}
-              <a
-                role="button"
-                className="pvtButton"
-                onClick={() =>
-                  this.props.addValuesToFilter(
-                    this.props.name,
-                    Object.keys(this.props.attrValues).filter(
-                      this.matchesFilter.bind(this)
-                    )
-                  )
-                }
-              >
-                Deselect {values.length === shown.length ? 'All' : shown.length}
-              </a>
             </p>
           )}
 
           {showMenu && (
-            <div className="pvtCheckContainer">
-              {shown.map(x => (
-                <p
-                  key={x}
-                  onClick={() => this.toggleValue(x)}
-                  className={x in this.props.valueFilter ? '' : 'selected'}
-                >
-                  <a className="pvtOnly" onClick={e => this.selectOnly(e, x)}>
-                    only
-                  </a>
-                  <a className="pvtOnlySpacer">&nbsp;</a>
-
-                  {x === '' ? <em>null</em> : x}
-                </p>
-              ))}
-            </div>
+              <div className="pvtCheckContainer">
+                {shown.map(x => (
+                    <div className="pvtCheckRow" key={x}>
+                      <button onClick={e => this.selectOnly(e, x)}><i className="mdi mdi-crown"></i></button>
+                      <input id={"INPUT_"+x.replace(/\s/gi, "")} type="checkbox" onClick={() => this.toggleValue(x)} checked={!(x in this.props.valueFilter)} onChange={() => {}}/>
+                      <label htmlFor={"INPUT_"+x.replace(/\s/gi, "")}>{x === '' ? <em>null</em> : x}</label>
+                    </div>
+                ))}
+              </div>
           )}
         </div>
       </Draggable>
@@ -148,15 +139,9 @@ export class DraggableAttribute extends React.Component {
       <li data-id={this.props.name}>
         <span className={'pvtAttr ' + filtered}>
           {this.props.name}
-          <span
-            className="pvtTriangle"
-            onClick={this.toggleFilterBox.bind(this)}
-          >
-            {' '}
-            ▾
+          <span className="pvtTriangle" onClick={this.toggleFilterBox.bind(this)}> {this.state.open ? <i className="mdi mdi-close"></i> : <i className="mdi mdi-menu-down"></i>}
           </span>
         </span>
-
         {this.state.open ? this.getFilterBox() : null}
       </li>
     );
@@ -194,8 +179,9 @@ export class Dropdown extends React.PureComponent {
           }
           role="button"
         >
-          <div className="pvtDropdownIcon">{this.props.open ? '×' : '▾'}</div>
           {this.props.current || <span>&nbsp;</span>}
+          <div className="spacer"></div>
+          <div className="pvtDropdownIcon">{this.props.open ? <i className="mdi mdi-close"></i> : <i className="mdi mdi-menu-down"></i>}</div>
         </div>
 
         {this.props.open && (
@@ -226,9 +212,82 @@ export class Dropdown extends React.PureComponent {
     );
   }
 }
+export class DropdownMultiple extends React.PureComponent {
+  constructor(props) {
+    super(props);
+
+    const current = Array.isArray(props.current) ? props.current : [props.current];
+    this.state = { checkedList: current }
+  }
+  checkedItemHandler(item){
+    const list = this.state.checkedList;
+    if(list.indexOf(item) > -1){
+      list.splice(list.indexOf(item), 1)
+    }else{
+      list.push(item);
+    }
+    this.setState({
+      checkedList: list
+    });
+
+    this.props.setValue(list);
+  }
+  render() {
+    let text = this.state.checkedList.sort()[0]
+    if(this.state.checkedList.length > 1){
+      text += "  +"+(this.state.checkedList.length-1);
+    }
+    return (
+        <div className="pvtDropdown" style={{zIndex: this.props.zIndex}}>
+          <div
+              onClick={e => {
+                e.stopPropagation();
+                this.props.toggle();
+              }}
+              className={
+                  'pvtDropdownValue pvtDropdownCurrent ' +
+                  (this.props.open ? 'pvtDropdownCurrentOpen' : '')
+              }
+              role="button"
+          >
+            {text || <span>&nbsp;</span>}
+            <div className="spacer"></div>
+            <div className="pvtDropdownIcon">{this.props.open ? <i className="mdi mdi-close"></i> : <i className="mdi mdi-menu-down"></i>}</div>
+          </div>
+
+          {this.props.open && (
+              <div className="pvtDropdownMenu">
+                {this.props.values.map(r => (
+                    <div
+                        key={r}
+                        role="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          this.checkedItemHandler(r);
+                        }}
+                        className={
+                            'pvtDropdownValue ' +
+                            (r === this.props.current ? 'pvtDropdownActiveValue' : '')
+                        }
+                    >
+                      <input type="checkbox"
+                             onChange={(e => {
+
+                             })}
+                             checked={this.state.checkedList.includes(r)}/>
+                      {r}
+                    </div>
+                ))}
+              </div>
+          )}
+        </div>
+    );
+  }
+}
 
 class PivotTableUI extends React.PureComponent {
   constructor(props) {
+    console.info('PivotTableUI', props)
     super(props);
     this.state = {
       unusedOrder: [],
@@ -348,7 +407,7 @@ class PivotTableUI extends React.PureComponent {
           filter: '.pvtFilterBox',
           preventOnFilter: false,
         }}
-        tag="td"
+        tag="ul"
         className={classes}
         onChange={onChange}
       >
@@ -379,14 +438,15 @@ class PivotTableUI extends React.PureComponent {
       this.props.aggregatorName
     ]([])().outlet;
 
-    const rendererName =
-      this.props.rendererName in this.props.renderers
-        ? this.props.rendererName
-        : Object.keys(this.props.renderers)[0];
+    const rendererName = this.props.rendererName
+
+      // this.props.rendererName in this.props.renderers
+      //   ? this.props.rendererName
+      //   : Object.keys(this.props.renderers)[0];
 
     const rendererCell = (
-      <td className="pvtRenderers">
-        <Dropdown
+      <div className="pvtRenderers">
+        <DropdownMultiple
           current={rendererName}
           values={Object.keys(this.props.renderers)}
           open={this.isOpen('renderer')}
@@ -398,7 +458,7 @@ class PivotTableUI extends React.PureComponent {
           }
           setValue={this.propUpdater('rendererName')}
         />
-      </td>
+      </div>
     );
 
     const sortIcons = {
@@ -416,7 +476,7 @@ class PivotTableUI extends React.PureComponent {
     };
 
     const aggregatorCell = (
-      <td className="pvtVals">
+      <div className="pvtVals">
         <Dropdown
           current={this.props.aggregatorName}
           values={Object.keys(this.props.aggregators)}
@@ -473,7 +533,7 @@ class PivotTableUI extends React.PureComponent {
           i + 1 !== numValsAllowed ? <br key={`br${i}`} /> : null,
         ])}
         {aggregatorCellOutlet && aggregatorCellOutlet(this.props.data)}
-      </td>
+      </div>
     );
 
     const unusedAttrs = Object.keys(this.state.attrValues)
@@ -520,33 +580,29 @@ class PivotTableUI extends React.PureComponent {
       'pvtAxisContainer pvtVertList pvtRows'
     );
     const outputCell = (
-      <td className="pvtOutput">
+      <div className="pvtOutput">
         <PivotTable
           {...update(this.props, {
             data: {$set: this.state.materializedInput},
           })}
         />
-      </td>
+      </div>
     );
 
     if (horizUnused) {
       return (
-        <table className="pvtUi">
-          <tbody onClick={() => this.setState({openDropdown: false})}>
-            <tr>
-              {rendererCell}
-              {unusedAttrsCell}
-            </tr>
-            <tr>
+          <div className="pivot-app"  onClick={() => this.setState({openDropdown: false})}>
+            <div className="pivot-left">
+              <div className="pivot-renderer">{rendererCell}</div>
               {aggregatorCell}
-              {colAttrsCell}
-            </tr>
-            <tr>
               {rowAttrsCell}
+            </div>
+            <div className="pivot-right">
+              {unusedAttrsCell}
+              {colAttrsCell}
               {outputCell}
-            </tr>
-          </tbody>
-        </table>
+            </div>
+          </div>
       );
     }
 
